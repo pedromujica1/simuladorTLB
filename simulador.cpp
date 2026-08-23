@@ -25,6 +25,11 @@ int main(){
 
     string linha;
 
+    // variáveis usadas no cálculo da taxa de compressão
+    int totalAcessos = 0;
+    int totalComprimido = 0;
+    string ultimaPagina = "";
+
     while (getline(arquivo1, linha)) {
         //pula pra proxima interacao se existem linhas vazias ou cabeçalho
         if (linha[0] == '=') continue;
@@ -58,12 +63,18 @@ int main(){
         uint64_t numPag = endDecimal  >> 12;
         uint64_t numPagFinal = pos_final >> 12;
 
+        totalAcessos++;
         if (numPag == numPagFinal) {
             //acesso aconteceu em uma única página
             stringstream ss;
             ss << hex << numPag;
             //adiciona no vetor de endereços
             refString.push_back(ss.str());
+
+            if (ss.str() != ultimaPagina) {
+                totalComprimido++;
+                ultimaPagina = ss.str();
+            }
         }
         else {
             //acesso atravessou duas páginas
@@ -72,9 +83,19 @@ int main(){
             ss1 << hex << numPag;
             ss2 << hex << numPagFinal;
           
-            //adiciona no vetor de endereços
+            // página 1
             refString.push_back(ss1.str());
+            if (ss1.str() != ultimaPagina) {
+                totalComprimido++;
+                ultimaPagina = ss1.str();
+            }
+            
+            // página 2
             refString.push_back(ss2.str());
+            if (ss2.str() != ultimaPagina) {
+                totalComprimido++;
+                ultimaPagina = ss2.str();
+            }
         }
 
         
@@ -137,11 +158,11 @@ int main(){
     for (string pagina : refString) {
         bool encontrada = false;
 
-        for (EntradaTLB entrada : tlb){
+        for (EntradaTLB& entrada : tlb){
 
             if (entrada.valida && entrada.pagina == pagina) {
 
-                bool encontrada = true;
+                encontrada = true;
                 break; 
             }
 
@@ -165,7 +186,12 @@ int main(){
 
 
     
+    cout << endl << "Quantidade de acessos original: " << totalAcessos << endl;
+    cout << "Quantidade comprimida: " << totalComprimido << endl;
 
+    double taxa = (double)totalAcessos / totalComprimido;
+
+    cout << "Taxa de compressao: " << taxa << ":1" << endl;
 
 
     
