@@ -6,11 +6,16 @@
 #include <cstdint>
 using namespace std;
 
+struct EntradaTLB {
+    string pagina;
+    bool valida;
+};
+
 
 int main(){
     string pdgTrace = "pdg.trace";
     ifstream arquivo1(pdgTrace);
-    vector<string> enderecos;
+    vector<string> refString;
     vector<string> paginasUnicas;
 
     if (!arquivo1.is_open()){
@@ -58,7 +63,7 @@ int main(){
             stringstream ss;
             ss << hex << numPag;
             //adiciona no vetor de endereços
-            enderecos.push_back(ss.str());
+            refString.push_back(ss.str());
         }
         else {
             //acesso atravessou duas páginas
@@ -68,8 +73,8 @@ int main(){
             ss2 << hex << numPagFinal;
           
             //adiciona no vetor de endereços
-            enderecos.push_back(ss1.str());
-            enderecos.push_back(ss2.str());
+            refString.push_back(ss1.str());
+            refString.push_back(ss2.str());
         }
 
         
@@ -77,7 +82,7 @@ int main(){
 
     arquivo1.close();
     //percorre array enderecos para retornar paginasUnicas
-    for (string pagina : enderecos) {
+    for (string pagina : refString) {
         bool existe = false;
 
         for (string paginaExistente : paginasUnicas) {
@@ -98,10 +103,10 @@ int main(){
          << LIMITE_SAIDA << "):" << endl;
 
     int limiteReferencia =
-        min(LIMITE_SAIDA, (int)enderecos.size());
+        min(LIMITE_SAIDA, (int)refString.size());
 
     for (int i = 0; i < limiteReferencia; i++) {
-        cout << enderecos[i] << " ";
+        cout << refString[i] << " ";
     }
 
     cout << endl;
@@ -117,6 +122,48 @@ int main(){
     }
 
     cout << endl;
+
+    //refString -> reference string, 
+    //paginasUnicas -> conjunto de páginas distintas encontradas
+
+    //tamanhos de TLB(P. exemplo 4, 6, 8, 10 entradas).
+    int entradaTLB = 4;
+    int TLB_misses =0;
+    int TLB_hits = 0;
+
+    vector<EntradaTLB> tlb(entradaTLB);
+
+    //para cada pagina procurar se ela já esta na TLB
+    for (string pagina : refString) {
+        bool encontrada = false;
+
+        for (EntradaTLB entrada : tlb){
+
+            if (entrada.valida && entrada.pagina == pagina) {
+
+                bool encontrada = true;
+                break; 
+            }
+
+        }
+
+        if (encontrada) {
+            TLB_hits++;
+            //lógica de HIT precisa ser colocada abaixo
+        } else {
+            TLB_misses++;
+            //lógica de MISS 
+        }
+        
+
+        
+        
+    
+    // procurar pagina na TLB
+    
+    }
+
+
     
 
 
