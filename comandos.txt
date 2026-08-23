@@ -1,0 +1,3 @@
+g++ myrb.cpp -o rbtree
+
+valgrind --log-file=main.trace --tool=lackey --trace-mem=yes ./rbtree < palavras5.txt

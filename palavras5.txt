@@ -1,0 +1,37 @@
+gato Mamífero doméstico da família dos felinos
+cachorro Animal leal e companheiro do ser humano
+elefante Maior mamífero terrestre, possui tromba longa
+tigre Felino selvagem de grande porte com listras
+leao Rei da selva, felino de grande força
+girafa Animal terrestre mais alto, com longo pescoço
+zebra Mamífero africano com listras pretas e brancas
+urso Mamífero onívoro encontrado em várias regiões do mundo
+lobo Animal selvagem semelhante ao cachorro
+macaco Primata ágil e inteligente, comum em florestas tropicais
+panda Urso originário da China, famoso por comer bambu
+avestruz Maior ave do mundo, incapaz de voar
+cavalo Animal usado para transporte e esportes
+---MENU---
+1
+banana
+Fruta amarela e doce
+2
+banana
+3
+4
+banana
+2
+banana
+1
+abacaxi
+Fruta tropical de casca verde e polpa amarela
+1
+laranja
+Fruta cítrica de cor alaranjada
+3
+2
+abacaxi
+4
+laranja
+3
+5
