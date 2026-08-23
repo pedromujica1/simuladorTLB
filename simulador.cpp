@@ -15,7 +15,7 @@ struct EntradaTLB {
 int main(){
     string pdgTrace = "pdg.trace";
     ifstream arquivo1(pdgTrace);
-    vector<string> refString;
+    vector<string> paginas;
     vector<string> paginasUnicas;
 
     if (!arquivo1.is_open()){
@@ -63,18 +63,19 @@ int main(){
         uint64_t numPag = endDecimal  >> 12;
         uint64_t numPagFinal = pos_final >> 12;
 
-        totalAcessos++;
+        
         if (numPag == numPagFinal) {
             //acesso aconteceu em uma única página
             stringstream ss;
             ss << hex << numPag;
+            
             //adiciona no vetor de endereços
-            refString.push_back(ss.str());
-
+            paginas.push_back(ss.str());
             if (ss.str() != ultimaPagina) {
                 totalComprimido++;
                 ultimaPagina = ss.str();
             }
+            totalAcessos++;
         }
         else {
             //acesso atravessou duas páginas
@@ -84,18 +85,19 @@ int main(){
             ss2 << hex << numPagFinal;
           
             // página 1
-            refString.push_back(ss1.str());
+            paginas.push_back(ss1.str());
             if (ss1.str() != ultimaPagina) {
                 totalComprimido++;
                 ultimaPagina = ss1.str();
             }
             
             // página 2
-            refString.push_back(ss2.str());
+            paginas.push_back(ss2.str());
             if (ss2.str() != ultimaPagina) {
                 totalComprimido++;
                 ultimaPagina = ss2.str();
             }
+            totalAcessos+=2;
         }
 
         
@@ -103,7 +105,7 @@ int main(){
 
     arquivo1.close();
     //percorre array enderecos para retornar paginasUnicas
-    for (string pagina : refString) {
+    for (string pagina : paginas) {
         bool existe = false;
 
         for (string paginaExistente : paginasUnicas) {
@@ -124,10 +126,10 @@ int main(){
          << LIMITE_SAIDA << "):" << endl;
 
     int limiteReferencia =
-        min(LIMITE_SAIDA, (int)refString.size());
+        min(LIMITE_SAIDA, (int)paginas.size());
 
     for (int i = 0; i < limiteReferencia; i++) {
-        cout << refString[i] << " ";
+        cout << paginas[i] << " ";
     }
 
     cout << endl;
@@ -144,7 +146,7 @@ int main(){
 
     cout << endl;
 
-    //refString -> reference string, 
+    //paginas -> histórico de acesso à cada página, 
     //paginasUnicas -> conjunto de páginas distintas encontradas
 
     //tamanhos de TLB(P. exemplo 4, 6, 8, 10 entradas).
@@ -153,15 +155,18 @@ int main(){
     int TLB_hits = 0;
 
     vector<EntradaTLB> tlb(entradaTLB);
+    for (auto& t : tlb) {
+        t.valida = false;
+        t.pagina = "";
+    }
 
     //para cada pagina procurar se ela já esta na TLB
-    for (string pagina : refString) {
+    for (string pagina : paginas) {
         bool encontrada = false;
 
         for (EntradaTLB& entrada : tlb){
 
             if (entrada.valida && entrada.pagina == pagina) {
-
                 encontrada = true;
                 break; 
             }
@@ -170,7 +175,7 @@ int main(){
 
         if (encontrada) {
             TLB_hits++;
-            //lógica de HIT precisa ser colocada abaixo
+            // se for LRU, bota no início da fila
         } else {
             TLB_misses++;
             //lógica de MISS 
@@ -189,9 +194,9 @@ int main(){
     cout << endl << "Quantidade de acessos original: " << totalAcessos << endl;
     cout << "Quantidade comprimida: " << totalComprimido << endl;
 
-    double taxa = (double)totalAcessos / totalComprimido;
+    double taxa = (double)totalComprimido / totalAcessos;
 
-    cout << "Taxa de compressao: " << taxa << ":1" << endl;
+    cout << "Taxa de compressao: " << taxa*100 << "%" << endl;
 
 
     
