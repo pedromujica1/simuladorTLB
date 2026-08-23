@@ -1,3 +1,4 @@
-g++ myrb.cpp -o rbtree
+/* pra por no relatório dps */
 
-valgrind --log-file=main.trace --tool=lackey --trace-mem=yes ./rbtree < palavras5.txt
+g++ main.cpp SimulatedAnnealing.cpp -o circuito
+valgrind --log-file=main.trace --tool=lackey --trace-mem=yes ./circuito
