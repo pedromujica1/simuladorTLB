@@ -4,6 +4,8 @@
 #include <vector>
 #include <sstream>
 #include <cstdint>
+#include <queue>
+#include <list>
 using namespace std;
 
 struct EntradaTLB {
@@ -160,33 +162,49 @@ int main(){
         t.pagina = "";
     }
 
+    list<int> lruQueue;
+
     //para cada pagina procurar se ela já esta na TLB
     for (string pagina : paginas) {
         bool encontrada = false;
 
-        for (EntradaTLB& entrada : tlb){
+        for (int i = 0; i < entradaTLB; i++){
 
-            if (entrada.valida && entrada.pagina == pagina) {
+            // se deu hit, coloca a página no final da fila
+            if (tlb[i].valida && tlb[i].pagina == pagina) {
+                TLB_hits++;
                 encontrada = true;
+
+                lruQueue.remove(i);
+                lruQueue.push_back(i);
                 break; 
             }
 
         }
 
-        if (encontrada) {
-            TLB_hits++;
-            // se for LRU, bota no início da fila
-        } else {
+        if (!encontrada) {
             TLB_misses++;
-            //lógica de MISS 
-        }
-        
 
-        
-        
-    
-    // procurar pagina na TLB
-    
+            // se a fila estiver cheia, sacrifica o último elemento (o que está a mais tempo sem ser usado)
+            if (lruQueue.size() == entradaTLB) {
+                int idx = lruQueue.front();
+                lruQueue.pop_front();
+
+                tlb[idx].pagina = pagina;
+                tlb[idx].valida = true;
+                lruQueue.push_back(idx);
+            }
+            else { // senão, encontra uma posição vazia
+                for (int i = 0; i < entradaTLB; i++) {
+                    if (tlb[i].valida == false) {
+                        tlb[i].valida = true;
+                        tlb[i].pagina = pagina;
+                        lruQueue.push_back(i);
+                        break;
+                    }
+                }
+            }
+        }    
     }
 
 
@@ -196,7 +214,10 @@ int main(){
 
     double taxa = (double)totalComprimido / totalAcessos;
 
-    cout << "Taxa de compressao: " << taxa*100 << "%" << endl;
+    cout << "Taxa de compressao: " << taxa*100 << "%" << endl << endl;
+
+    cout << "Hits: " << TLB_hits << endl;
+    cout << "Misses: " << TLB_misses << endl;
 
 
     
