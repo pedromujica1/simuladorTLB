@@ -3,8 +3,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
-#include <cstdint>
-#include <queue>
+#include <random>
 #include <list>
 using namespace std;
 
@@ -153,52 +152,93 @@ int main(){
 
     //tamanhos de TLB(P. exemplo 4, 6, 8, 10 entradas).
     int entradaTLB = 4;
-    int TLB_misses =0;
-    int TLB_hits = 0;
 
-    vector<EntradaTLB> tlb(entradaTLB);
-    for (auto& t : tlb) {
+    int LRU_misses =0;
+    int LRU_hits = 0;
+    vector<EntradaTLB> LRU_tlb(entradaTLB);
+    for (auto& t : LRU_tlb) {
         t.valida = false;
         t.pagina = "";
     }
 
+    int RND_misses = 0;
+    int RND_hits = 0;
+    vector<EntradaTLB> RND_tlb(entradaTLB);
+    for (auto& t : RND_tlb) {
+        t.valida = false;
+        t.pagina = "";
+    }
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_int_distribution<int> distrib(0, entradaTLB - 1);
+    
+
     list<int> lruQueue;
+    list<int> rndQueue;
 
     //para cada pagina procurar se ela já esta na TLB
     for (string pagina : paginas) {
-        bool encontrada = false;
+        bool encontradaLRU = false;
+        bool encontradaRND = false;
 
         for (int i = 0; i < entradaTLB; i++){
 
-            // se deu hit, coloca a página no final da fila
-            if (tlb[i].valida && tlb[i].pagina == pagina) {
-                TLB_hits++;
-                encontrada = true;
+            // Random: se deu hit, só incrementa o contador
+            if (RND_tlb[i].valida && RND_tlb[i].pagina == pagina && !encontradaRND) {
+                RND_hits++;
+                encontradaRND = true;
+            }
+
+            // LRU: se deu hit, coloca a página no final da fila
+            if (LRU_tlb[i].valida && LRU_tlb[i].pagina == pagina && !encontradaLRU) {
+                LRU_hits++;
+                encontradaLRU = true;
 
                 lruQueue.remove(i);
                 lruQueue.push_back(i);
-                break; 
             }
 
         }
 
-        if (!encontrada) {
-            TLB_misses++;
+        if (!encontradaRND) {
+            RND_misses++;
+
+            // se o tlb estiver cheio, sacrifica um elemento aleatório
+            if (rndQueue.size() == entradaTLB) {
+                int idx = distrib(gen); // pega um índice aleatório das páginas alocadas
+                RND_tlb[idx].pagina = pagina;
+                RND_tlb[idx].valida = true;
+            }
+            else { // senão, encontra uma posição vazia
+                for (int i = 0; i < entradaTLB; i++) {
+                    if (RND_tlb[i].valida == false) {
+                        RND_tlb[i].valida = true;
+                        RND_tlb[i].pagina = pagina;
+                        rndQueue.push_back(i);
+                        break;
+                    }
+                }
+            }
+        }
+
+
+        if (!encontradaLRU) {
+            LRU_misses++;
 
             // se a fila estiver cheia, sacrifica o último elemento (o que está a mais tempo sem ser usado)
             if (lruQueue.size() == entradaTLB) {
                 int idx = lruQueue.front();
                 lruQueue.pop_front();
 
-                tlb[idx].pagina = pagina;
-                tlb[idx].valida = true;
+                LRU_tlb[idx].pagina = pagina;
+                LRU_tlb[idx].valida = true;
                 lruQueue.push_back(idx);
             }
             else { // senão, encontra uma posição vazia
                 for (int i = 0; i < entradaTLB; i++) {
-                    if (tlb[i].valida == false) {
-                        tlb[i].valida = true;
-                        tlb[i].pagina = pagina;
+                    if (LRU_tlb[i].valida == false) {
+                        LRU_tlb[i].valida = true;
+                        LRU_tlb[i].pagina = pagina;
                         lruQueue.push_back(i);
                         break;
                     }
@@ -207,17 +247,26 @@ int main(){
         }    
     }
 
-
-    
     cout << endl << "Quantidade de acessos original: " << totalAcessos << endl;
     cout << "Quantidade comprimida: " << totalComprimido << endl;
-
     double taxa = (double)totalComprimido / totalAcessos;
-
     cout << "Taxa de compressao: " << taxa*100 << "%" << endl << endl;
+    cout << "Tamanho da TLB: " << entradaTLB << endl;
 
-    cout << "Hits: " << TLB_hits << endl;
-    cout << "Misses: " << TLB_misses << endl;
+    // Dá pra botar esses prints em uma função e só passar os parâmetros!!!!!!!
+    
+    cout << "======================= ALGORITMO LRU =======================" << endl;
+    cout << "Hits: " << LRU_hits << endl;
+    cout << "Misses: " << LRU_misses << endl;
+    cout << "Hit Rate: " << (double)LRU_hits / (LRU_misses + LRU_hits) * 100 << "%" << endl;
+    cout << "======================= ALGORITMO LRU =======================" << endl << endl;
+
+
+    cout << "======================= ALGORITMO RANDOM =======================" << endl;
+    cout << "Hits: " << RND_hits << endl;
+    cout << "Misses: " << RND_misses << endl;
+    cout << "Hit Rate: " << (double)RND_hits / (RND_misses + RND_hits) * 100 << "%" << endl;
+    cout << "======================= ALGORITMO RANDOM =======================" << endl;
 
 
     
