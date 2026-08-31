@@ -12,151 +12,178 @@ struct EntradaTLB {
     bool valida;
 };
 
+struct ResultadoTLB {
+    int LRU_hits;
+    int LRU_misses;
 
-int main(){
-    string pdgTrace = "pdg.trace";
-    ifstream arquivo1(pdgTrace);
-    vector<string> paginas;
-    vector<string> paginasUnicas;
+    int RND_hits;
+    int RND_misses;
+};
 
-    if (!arquivo1.is_open()){
-        cerr << "Error ao abrir arquivo!" << endl;
-        return 1;
+ResultadoTLB simularTLB(int entradaTLB, const std::vector<string>& refString);
+
+class TLB {
+public:
+    // construtor
+    TLB(const string &arquivo) : arquivo(arquivo) {
+        gerarReferenceString();
     }
 
-    string linha;
+    // getters
+    int getTotalAcessos() const { return totalAcessos; }
 
-    // variáveis usadas no cálculo da taxa de compressão
+    int getTotalComprimido() const { return totalComprimido; }
+
+    string getArquivo() const { return arquivo; }
+
+    std::vector<string> getReferenceString() const { return referenceString; }
+
+
+private:
     int totalAcessos = 0;
     int totalComprimido = 0;
-    string ultimaPagina = "";
 
-    while (getline(arquivo1, linha)) {
-        //pula pra proxima interacao se existem linhas vazias ou cabeçalho
-        if (linha[0] == '=') continue;
+    string arquivo;
+    std::vector<string> referenceString;
 
-        size_t pos_virgula = linha.find(',');
-        //se posiçao da virgula não foi encontrado pula pra proxima iteracao
-        if (pos_virgula == string::npos) continue;
+    // método para gerar a reference string a partir do arquivo
+    void gerarReferenceString() {
+        ifstream arquivo1(arquivo);
 
-        size_t pos_inicio = 0;
-
-        //pula espaços e letras de instrução
-        while (pos_inicio < linha.length() && (linha[pos_inicio] == ' ' || linha[pos_inicio] == 'I' || linha[pos_inicio] == 'S' || linha[pos_inicio] == 'L' || linha[pos_inicio] == 'M')) {
-            pos_inicio++;
-        }
-        //tamanho do end de memoria
-        string tamanho_str = linha.substr(pos_virgula + 1);
-        //transforma pra int
-        int tamanho = stoi(tamanho_str);
-
-        //extrai substring com endereço
-        string hex_str = linha.substr(pos_inicio, pos_virgula - pos_inicio);
-
-        //converte hexa pra inteiro
-        uint64_t endDecimal = stoull(hex_str,nullptr,16);
-
-        //calcula endereço final do acesso
-        uint64_t pos_final = endDecimal + tamanho - 1;
-
-
-        //descobre numero da pagina removendo os 12 bits de desolcamento
-        uint64_t numPag = endDecimal  >> 12;
-        uint64_t numPagFinal = pos_final >> 12;
-
-        
-        if (numPag == numPagFinal) {
-            //acesso aconteceu em uma única página
-            stringstream ss;
-            ss << hex << numPag;
-            
-            //adiciona no vetor de endereços
-            paginas.push_back(ss.str());
-            if (ss.str() != ultimaPagina) {
-                totalComprimido++;
-                ultimaPagina = ss.str();
-            }
-            totalAcessos++;
-        }
-        else {
-            //acesso atravessou duas páginas
-            stringstream ss1;
-            stringstream ss2;
-            ss1 << hex << numPag;
-            ss2 << hex << numPagFinal;
-          
-            // página 1
-            paginas.push_back(ss1.str());
-            if (ss1.str() != ultimaPagina) {
-                totalComprimido++;
-                ultimaPagina = ss1.str();
-            }
-            
-            // página 2
-            paginas.push_back(ss2.str());
-            if (ss2.str() != ultimaPagina) {
-                totalComprimido++;
-                ultimaPagina = ss2.str();
-            }
-            totalAcessos+=2;
+        if (!arquivo1.is_open()) {
+            cerr << "Error ao abrir arquivo!" << endl;
+            exit(1);
         }
 
-        
+        string linha;
+
+        // variáveis usadas no cálculo da taxa de compressão
+        string ultimaPagina = "";
+
+        while (getline(arquivo1, linha)) {
+            // pula pra proxima interacao se existem linhas vazias ou cabeçalho
+            if (linha[0] == '=') { continue; }
+
+            size_t pos_virgula = linha.find(',');
+
+            // se posiçao da virgula não foi encontrado pula pra proxima iteracao
+            if (pos_virgula == string::npos) { continue; }
+
+            size_t pos_inicio = 0;
+
+            // pula espaços e letras de instrução
+            while (pos_inicio < linha.length() && (linha[pos_inicio] == ' ' || linha[pos_inicio] == 'I' || linha[pos_inicio] == 'S' || linha[pos_inicio] == 'L' || linha[pos_inicio] == 'M')) {
+                pos_inicio++;
+            }
+            // tamanho do end de memoria
+            string tamanho_str = linha.substr(pos_virgula + 1);
+            // transforma pra int
+            int tamanho = stoi(tamanho_str);
+
+            // extrai substring com endereço
+            string hex_str = linha.substr(pos_inicio, pos_virgula - pos_inicio);
+
+            // converte hexa pra inteiro
+            uint64_t endDecimal = stoull(hex_str, nullptr, 16);
+
+            // calcula endereço final do acesso
+            uint64_t pos_final = endDecimal + tamanho - 1;
+
+            // descobre numero da pagina removendo os 12 bits de desolcamento
+            uint64_t numPag = endDecimal >> 12;
+            uint64_t numPagFinal = pos_final >> 12;
+
+            if (numPag == numPagFinal) {
+                // acesso aconteceu em uma única página
+                stringstream ss;
+                ss << hex << numPag;
+
+                // adiciona na reference string se não for a página anterior
+                if (ss.str() != ultimaPagina) {
+                    referenceString.push_back(ss.str());
+                    totalComprimido++;
+                    ultimaPagina = ss.str();
+                }
+                totalAcessos++;
+            }
+            else {
+                // acesso atravessou duas páginas
+                stringstream ss1;
+                stringstream ss2;
+                ss1 << hex << numPag;
+                ss2 << hex << numPagFinal;
+
+                // página 1
+                if (ss1.str() != ultimaPagina) {
+                    referenceString.push_back(ss1.str());
+                    totalComprimido++;
+                    ultimaPagina = ss1.str();
+                }
+
+                // página 2
+                if (ss2.str() != ultimaPagina) {
+                    referenceString.push_back(ss2.str());
+                    totalComprimido++;
+                    ultimaPagina = ss2.str();
+                }
+                totalAcessos += 2;
+            }
+        }
+        arquivo1.close();
     }
+};
 
-    arquivo1.close();
-    //percorre array enderecos para retornar paginasUnicas
-    for (string pagina : paginas) {
-        bool existe = false;
+int main() {
+    string pdgTrace = "pdg.trace";
 
-        for (string paginaExistente : paginasUnicas) {
-            if (pagina == paginaExistente) {
-                existe = true;
-                break;
-            }
-        }
+    TLB tlb(pdgTrace);
+    std::vector<string> refString = tlb.getReferenceString();
 
-        if (!existe) {
-            paginasUnicas.push_back(pagina);
-        }
-    }
-
+    // printando as primeiras 50 reference strings
     const int LIMITE_SAIDA = 50;
+    int limiteReferencia = min(LIMITE_SAIDA, (int)refString.size());
 
-    cout << "Reference String (primeiras "
-         << LIMITE_SAIDA << "):" << endl;
-
-    int limiteReferencia =
-        min(LIMITE_SAIDA, (int)paginas.size());
+    cout << "Reference String (primeiras " << LIMITE_SAIDA << "):" << endl;
 
     for (int i = 0; i < limiteReferencia; i++) {
-        cout << paginas[i] << " ";
+        cout << refString[i] << " ";
     }
-
     cout << endl;
 
-    cout << "\nPaginas Unicas (primeiras "
-         << LIMITE_SAIDA << "):" << endl;
-
-    int limitePaginas =
-        min(LIMITE_SAIDA, (int)paginasUnicas.size());
-
-    for (int i = 0; i < limitePaginas; i++) {
-        cout << paginasUnicas[i] << " ";
-    }
-
-    cout << endl;
-
-    //paginas -> histórico de acesso à cada página, 
-    //paginasUnicas -> conjunto de páginas distintas encontradas
-
-    //tamanhos de TLB(P. exemplo 4, 6, 8, 10 entradas).
+    // calculando o número de misses e hits
+    // tamanhos de TLB(P. exemplo 4, 6, 8, 10 entradas).
     int entradaTLB = 4;
 
-    int LRU_misses =0;
+    ResultadoTLB resultado = simularTLB(entradaTLB, refString);
+
+
+    // printando os resultados
+    cout << endl << "Quantidade de acessos original: " << tlb.getTotalAcessos() << endl;
+    cout << "Quantidade comprimida: " << tlb.getTotalComprimido() << endl;
+    double taxa = (double)tlb.getTotalComprimido() / tlb.getTotalAcessos();
+    cout << "Taxa de compressao: " << taxa * 100 << "%" << endl << endl;
+    cout << "Tamanho da TLB: " << entradaTLB << endl;
+
+    cout << "======================= ALGORITMO LRU =======================" << endl;
+    cout << "Hits: " << resultado.LRU_hits << endl;
+    cout << "Misses: " << resultado.LRU_misses << endl;
+    cout << "Hit Rate: " << (double)resultado.LRU_hits / (resultado.LRU_misses + resultado.LRU_hits) * 100 << "%" << endl;
+    cout << "======================= ALGORITMO LRU =======================" << endl << endl;
+
+    cout << "======================= ALGORITMO RANDOM =======================" << endl;
+    cout << "Hits: " << resultado.RND_hits << endl;
+    cout << "Misses: " << resultado.RND_misses << endl;
+    cout << "Hit Rate: " << (double)resultado.RND_hits / (resultado.RND_misses + resultado.RND_hits) * 100 << "%" << endl;
+    cout << "======================= ALGORITMO RANDOM =======================" << endl;
+}
+
+
+ResultadoTLB simularTLB(int entradaTLB, const std::vector<string>& refString) {
+
+    int LRU_misses = 0;
     int LRU_hits = 0;
     vector<EntradaTLB> LRU_tlb(entradaTLB);
-    for (auto& t : LRU_tlb) {
+    for (auto &t : LRU_tlb) {
         t.valida = false;
         t.pagina = "";
     }
@@ -164,24 +191,23 @@ int main(){
     int RND_misses = 0;
     int RND_hits = 0;
     vector<EntradaTLB> RND_tlb(entradaTLB);
-    for (auto& t : RND_tlb) {
+    for (auto &t : RND_tlb) {
         t.valida = false;
         t.pagina = "";
     }
     random_device rd;
     mt19937 gen(rd());
     uniform_int_distribution<int> distrib(0, entradaTLB - 1);
-    
 
     list<int> lruQueue;
     list<int> rndQueue;
 
-    //para cada pagina procurar se ela já esta na TLB
-    for (string pagina : paginas) {
+    // para cada pagina procurar se ela já esta na TLB
+    for (string pagina : refString) {
         bool encontradaLRU = false;
         bool encontradaRND = false;
 
-        for (int i = 0; i < entradaTLB; i++){
+        for (int i = 0; i < entradaTLB; i++) {
 
             // Random: se deu hit, só incrementa o contador
             if (RND_tlb[i].valida && RND_tlb[i].pagina == pagina && !encontradaRND) {
@@ -197,9 +223,9 @@ int main(){
                 lruQueue.remove(i);
                 lruQueue.push_back(i);
             }
-
         }
 
+        // ============ RND ============
         if (!encontradaRND) {
             RND_misses++;
 
@@ -221,7 +247,7 @@ int main(){
             }
         }
 
-
+        // ============ LRU ============
         if (!encontradaLRU) {
             LRU_misses++;
 
@@ -244,31 +270,8 @@ int main(){
                     }
                 }
             }
-        }    
+        }
     }
 
-    cout << endl << "Quantidade de acessos original: " << totalAcessos << endl;
-    cout << "Quantidade comprimida: " << totalComprimido << endl;
-    double taxa = (double)totalComprimido / totalAcessos;
-    cout << "Taxa de compressao: " << taxa*100 << "%" << endl << endl;
-    cout << "Tamanho da TLB: " << entradaTLB << endl;
-
-    // Dá pra botar esses prints em uma função e só passar os parâmetros!!!!!!!
-    
-    cout << "======================= ALGORITMO LRU =======================" << endl;
-    cout << "Hits: " << LRU_hits << endl;
-    cout << "Misses: " << LRU_misses << endl;
-    cout << "Hit Rate: " << (double)LRU_hits / (LRU_misses + LRU_hits) * 100 << "%" << endl;
-    cout << "======================= ALGORITMO LRU =======================" << endl << endl;
-
-
-    cout << "======================= ALGORITMO RANDOM =======================" << endl;
-    cout << "Hits: " << RND_hits << endl;
-    cout << "Misses: " << RND_misses << endl;
-    cout << "Hit Rate: " << (double)RND_hits / (RND_misses + RND_hits) * 100 << "%" << endl;
-    cout << "======================= ALGORITMO RANDOM =======================" << endl;
-
-
-    
-
+    return {LRU_hits, LRU_misses, RND_hits, RND_misses};
 }
