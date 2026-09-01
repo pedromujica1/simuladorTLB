@@ -133,13 +133,17 @@ private:
     }
 };
 
-int main() {
-    string pdgTrace = "circuitos.trace";
-    cout << "Arquivo de analise: " << pdgTrace << endl << endl;
-
-    TLB tlb(pdgTrace);
+int main(int argc, char* argv[]) {
+    
+    string arquivo = argv[1];
+    TLB tlb(arquivo);
     std::vector<string> refString = tlb.getReferenceString();
+    
+    int entradaTLB;
+    cout << "Numero de entradas da TLB: ";
+    cin >> entradaTLB;
 
+    cout << "Arquivo de analise: " << arquivo << endl << endl;
     // printando as primeiras 50 reference strings
     const int LIMITE_SAIDA = 50;
     int limiteReferencia = min(LIMITE_SAIDA, (int)refString.size());
@@ -152,11 +156,7 @@ int main() {
     cout << endl;
 
     // calculando o número de misses e hits
-    // tamanhos de TLB(P. exemplo 4, 6, 8, 10 entradas).
-    int entradaTLB = 4;
-
     ResultadoTLB resultado = simularTLB(entradaTLB, refString);
-
 
     // printando os resultados
     cout << endl << "Quantidade de acessos original: " << tlb.getTotalAcessos() << endl;
