@@ -134,7 +134,8 @@ private:
 };
 
 int main() {
-    string pdgTrace = "pdg.trace";
+    string pdgTrace = "circuitos.trace";
+    cout << "Arquivo de analise: " << pdgTrace << endl << endl;
 
     TLB tlb(pdgTrace);
     std::vector<string> refString = tlb.getReferenceString();
