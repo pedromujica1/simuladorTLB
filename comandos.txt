@@ -1,7 +1,0 @@
-/* pra por no relatório dps */
-
-g++ main.cpp SimulatedAnnealing.cpp -o circuito
-valgrind --log-file=main.trace --tool=lackey --trace-mem=yes ./circuito
-
-g++ simulador.cpp -o simulador
-./simulador <arquivo>
